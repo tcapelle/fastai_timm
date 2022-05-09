@@ -32,7 +32,7 @@ def do_sweep():
             "split_func": {"values": ["default", "timm"]},
         },
     }
-    if args.sweep_id is not None:
+    if args.sweep_id is None:
         sweep_id = wandb.sweep(
             sweep_configs,
             project="fine_tune_timm",
