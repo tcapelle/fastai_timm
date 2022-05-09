@@ -33,24 +33,28 @@ def get_dls(batch_size, img_size, seed):
     return dls
     
 
-if __name__ == "__main__":
+    
+def train():
     args = parse_args()
-    set_seed(args.seed)
+    group_name = "torchvision" if args.force_torchvision else "timm"
     for _ in range(args.num_experiments):
-        group_name = "torchvision" if args.force_torchvision else "timm"
-        with wandb.init(project=args.wandb_project, group=group_name, config=args):
-            dls = get_dls(args.batch_size, args.img_size, args.seed)
-            cbs = [MixedPrecision(), WandbCallback(log_preds=False)]
-            if args.mixup: cbs.append(MixUp())
-            if args.force_torchvision: 
-                model_name = getattr(models, args.model_name)
-            else:
-                model_name = args.model_name
-            learn = vision_learner(dls, 
-                                   model_name, 
-                                   metrics=[accuracy], 
-                                   cbs=cbs, 
-                                   pretrained=True)
-            learn.fine_tune(args.epochs, args.learning_rate)
+        for model_name in timm.list_models(args.model_name):
+            print(f"Training {model_name}")
+            with wandb.init(project=args.wandb_project, group=group_name, config=args):
+                dls = get_dls(args.batch_size, args.img_size, args.seed)
+                cbs = [MixedPrecision(), WandbCallback(log_preds=False)]
+                if args.mixup: cbs.append(MixUp())
+                if args.force_torchvision: 
+                    model_name = getattr(models, model_name)
+                learn = vision_learner(dls, 
+                                       model_name, 
+                                       metrics=[accuracy, error_rate], 
+                                       cbs=cbs)
+                learn.fine_tune(args.epochs, args.learning_rate)
+
+if __name__ == "__main__":
+    train()
+    
+
 
 
