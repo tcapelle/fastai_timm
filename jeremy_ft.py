@@ -7,8 +7,8 @@ GROUP_NAME = "fit-streategies"
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--fit_epochs', type=int, default=1)
-    parser.add_argument('--ft_epochs', type=int, default=3)
+    parser.add_argument('--fit_epochs', type=int, default=0)
+    parser.add_argument('--ft_epochs', type=int, default=10)
     parser.add_argument('--num_experiments', type=int, default=1)
     parser.add_argument('--fit_learning_rate', type=float, default=0.002)
     parser.add_argument('--ft_learning_rate', type=float, default=0.002)
@@ -21,7 +21,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_dls(batch_size, img_size, seed):
+def get_pets(batch_size, img_size, seed):
     "The dog breeds pets datasets"
     dataset_path = untar_data(URLs.PETS)
     files = get_image_files(dataset_path/"images")
@@ -37,7 +37,7 @@ def get_dls(batch_size, img_size, seed):
 
 def get_learner(args, **kwargs):
     "A simple vision learner form a timm backbone"
-    dls = get_dls(args.batch_size, args.img_size, args.seed)
+    dls = get_pets(args.batch_size, args.img_size, args.seed)
     if args.force_torchvision: args.model_name = getattr(models, args.model_name)
     learn = vision_learner(dls, 
                            args.model_name, 
