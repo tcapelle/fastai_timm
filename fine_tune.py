@@ -55,28 +55,28 @@ def get_pets(batch_size, img_size, seed, method="crop"):
     return dls
     
 
-top_5_accuracy = partial(top_k_accuracy, k=5)
+# not working with levit
+# top_5_accuracy = partial(top_k_accuracy, k=5)
     
 def train(config=config_defaults):
-    print(f"\n >> Training {config.model_name}\n")
-    for _ in range(config.num_experiments):
-        with wandb.init(project=config.wandb_project, group="torchvision" if config.force_torchvision else "timm", config=config):
-            config = wandb.config
-            dls = get_pets(config.batch_size, config.img_size, config.seed, config.resize_method)
-            if config.force_torchvision: 
-                config.model_name = getattr(torchvision.models, config.model_name)
-            learn = vision_learner(dls, 
-                                   config.model_name, 
-                                   metrics=[accuracy, error_rate, top_5_accuracy], 
-                                   concat_pool=config.concat_pool,
-                                   splitter=default_split if config.split_func=="default" else None,
-                                   cbs=WandbCallback(log_preds=False)).to_fp16()
-            learn.fine_tune(config.epochs, config.learning_rate)
-            wandb.summary({"GPU_mem": get_gpu_mem(learn.dls.device)})
+    with wandb.init(project=config.wandb_project, group="torchvision" if config.force_torchvision else "timm", config=config):
+        config = wandb.config
+        dls = get_pets(config.batch_size, config.img_size, config.seed, config.resize_method)
+        if config.force_torchvision: 
+            config.model_name = getattr(torchvision.models, config.model_name)
+        learn = vision_learner(dls, 
+                               config.model_name, 
+                               metrics=[accuracy, error_rate], 
+                               concat_pool=config.concat_pool,
+                               splitter=default_split if config.split_func=="default" else None,
+                               cbs=WandbCallback(log_preds=False)).to_fp16()
+        learn.fine_tune(config.epochs, config.learning_rate)
+        wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
     
 if __name__ == "__main__":
     args = parse_args()
-    train(config=args)
+    for _ in range(args.num_experiments):
+        train(config=args)
     
     
 

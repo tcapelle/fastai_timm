@@ -29,7 +29,8 @@ def do_sweep():
             "model_name": {"values": models},
             # "split_func": {"values": ["default", "timm"]},
             "concat_pool": {"values": [True, False]},
-            "resize_method":{"values":["crop", "squish"]}
+            "resize_method":{"values":["crop", "squish"]},
+            "num_experiments": {"values": [1,2,3]},  #just to log the number of the exp
         },
     }
     if args.sweep_id is None:
