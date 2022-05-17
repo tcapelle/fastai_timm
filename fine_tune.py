@@ -8,18 +8,18 @@ from fastai.callback.wandb import WandbCallback
 WANDB_PROJECT = 'fine_tune_timm'
 
 config_defaults = SimpleNamespace(
-    batch_size=64,
+    batch_size=32,
     epochs=5,
-    num_experiments=3,
+    num_experiments=1,
     learning_rate=2e-3,
     img_size=224,
     resize_method="crop",
     model_name="resnet34",
-    concat_pool=False,
+    pool="concat",
     seed=42,
-    force_torchvision=False,
     wandb_project=WANDB_PROJECT,
     split_func="default",
+    dataset="PETS",
 )
 
 def parse_args():
@@ -32,10 +32,10 @@ def parse_args():
     parser.add_argument('--resize_method', type=str, default=config_defaults.resize_method)
     parser.add_argument('--model_name', type=str, default=config_defaults.model_name)
     parser.add_argument('--split_func', type=str, default=config_defaults.split_func)
-    parser.add_argument('--concat_pool', action='store_true')
+    parser.add_argument('--pool', type=str, default=config_defaults.pool)
     parser.add_argument('--seed', type=int, default=config_defaults.seed)
-    parser.add_argument('--force_torchvision', action='store_true')
     parser.add_argument('--wandb_project', type=str, default=WANDB_PROJECT)
+    parser.add_argument('--dataset', type=str, default=config_defaults.dataset)
     return parser.parse_args()
 
 def get_gpu_mem(device=0):
@@ -52,26 +52,44 @@ def get_pets(batch_size, img_size, seed, method="crop"):
                                         seed=seed, 
                                         bs=batch_size,
                                         item_tfms=Resize(img_size, method=method)) 
-    return dls
+    metrics = [error_rate, accuracy]
+    return dls, metrics
     
-
-# not working with levit
-# top_5_accuracy = partial(top_k_accuracy, k=5)
+def get_planets(batch_size=64, img_size=224, seed=42, method="crop"):
+    dataset_path=untar_data(URLs.PLANET_SAMPLE)
+    dls = ImageDataLoaders.from_csv(dataset_path, 
+                                    folder="train", 
+                                    csv_fname="labels.csv",
+                                    label_delim=" ",
+                                    suff=".jpg",
+                                    bs=batch_size,
+                                    seed=seed,
+                                    item_tfms=Resize(img_size, method=method))
+    metrics = [accuracy_multi, FBetaMulti(beta=2)]
+    return dls, metrics
+    
+def get_dataset(dataset_name, *args, **kwargs):
+    if dataset_name   == "PETS":    return get_pets(*args, **kwargs)
+    elif dataset_name == "PLANETS": return get_planets(*args, **kwargs)
+    else: raise Exception("Dataset not found, supports: PETS or PLANETS")
     
 def train(config=config_defaults):
-    with wandb.init(project=config.wandb_project, group="torchvision" if config.force_torchvision else "timm", config=config):
+    with wandb.init(project=config.wandb_project, group="timm", config=config):
         config = wandb.config
-        dls = get_pets(config.batch_size, config.img_size, config.seed, config.resize_method)
-        if config.force_torchvision: 
-            config.model_name = getattr(torchvision.models, config.model_name)
+        dls, metrics = get_dataset(config.dataset, 
+                          config.batch_size, 
+                          config.img_size, 
+                          config.seed, 
+                          config.resize_method)
         learn = vision_learner(dls, 
                                config.model_name, 
-                               metrics=[accuracy, error_rate], 
-                               concat_pool=config.concat_pool,
+                               metrics=metrics, 
+                               concat_pool=(config.pool=="concat"),
                                splitter=default_split if config.split_func=="default" else None,
                                cbs=WandbCallback(log_preds=False)).to_fp16()
         learn.fine_tune(config.epochs, config.learning_rate)
         wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
+        wandb.summary["model_family"] = config.model_name.split('_')[0]
     
 if __name__ == "__main__":
     args = parse_args()
