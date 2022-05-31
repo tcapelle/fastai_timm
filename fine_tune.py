@@ -87,6 +87,7 @@ def train(config=config_defaults):
                                concat_pool=(config.pool=="concat"),
                                splitter=default_split if config.split_func=="default" else None,
                                cbs=WandbCallback(log_preds=False)).to_fp16()
+        ti = time.perf_counter()
         learn.fine_tune(config.epochs, config.learning_rate)
         wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
         wandb.summary["model_family"] = config.model_name.split('_')[0]
