@@ -91,6 +91,7 @@ def train(config=config_defaults):
         learn.fine_tune(config.epochs, config.learning_rate)
         wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
         wandb.summary["model_family"] = config.model_name.split('_')[0]
+        wandb.summary["fit_time"] = time.perf_counter() - ti
     
 if __name__ == "__main__":
     args = parse_args()
