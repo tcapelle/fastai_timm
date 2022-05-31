@@ -6,6 +6,7 @@ from fastai.vision.all import *
 from fastai.callback.wandb import WandbCallback
 
 WANDB_PROJECT = 'fine_tune_timm'
+WANDB_ENTITY = 'capecape'
 
 config_defaults = SimpleNamespace(
     batch_size=32,
@@ -18,6 +19,7 @@ config_defaults = SimpleNamespace(
     pool="concat",
     seed=42,
     wandb_project=WANDB_PROJECT,
+    wandb_entity=WANDB_ENTITY,
     split_func="default",
     dataset="PETS",
 )
@@ -35,6 +37,7 @@ def parse_args():
     parser.add_argument('--pool', type=str, default=config_defaults.pool)
     parser.add_argument('--seed', type=int, default=config_defaults.seed)
     parser.add_argument('--wandb_project', type=str, default=WANDB_PROJECT)
+    parser.add_argument('--wandb_entity', type=str, default=WANDB_ENTITY)
     parser.add_argument('--dataset', type=str, default=config_defaults.dataset)
     return parser.parse_args()
 
@@ -74,7 +77,7 @@ def get_dataset(dataset_name, *args, **kwargs):
     else: raise Exception("Dataset not found, supports: PETS or PLANETS")
     
 def train(config=config_defaults):
-    with wandb.init(project=config.wandb_project, group="timm", config=config):
+    with wandb.init(project=config.wandb_project, group="timm", entity=config.wandb_entity, config=config):
         config = wandb.config
         dls, metrics = get_dataset(config.dataset, 
                           config.batch_size, 
