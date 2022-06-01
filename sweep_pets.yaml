@@ -3,6 +3,8 @@ method: grid
 parameters:
     dataset: 
         value: "PETS"
+    learning_rate:
+        values: [0.002, 0.008]
     model_name:
         values: [
             'levit_128s',
