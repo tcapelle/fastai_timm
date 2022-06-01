@@ -1,0 +1,31 @@
+program: fine_tune.py
+method: bayes
+metric:
+  name: valid_loss
+  goal: minimize
+parameters:
+    dataset: 
+        value: "PLANETS"
+    model_name:
+        values: [
+            'levit_128s',
+            'levit_128',
+            'levit_192',
+            'resnet18',
+            'levit_256',
+            'levit_384',
+            'resnet34d',
+            'resnet26',
+            'resnet50',
+            'resnet50d',
+            'resnet101',
+            'resnet152',
+            ]
+    pool:
+        values: ['concat', 'avg']
+    resize_method:
+        values: ['crop', 'squish']
+    learning_rate:
+        distribution: uniform
+        min: 1e-5
+        max: 1e-2
