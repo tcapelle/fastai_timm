@@ -75,8 +75,8 @@ parameters:
             'vit_base_patch8_224',
             ]
     pool:
-        values: ['concat', 'avg']
+        values: ['concat']
     resize_method:
-        values: ['crop', 'squish']
+        values: ['squish']
     num_experiments: 
         values: [1,2,3]
