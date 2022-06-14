@@ -5,23 +5,18 @@ import torchvision
 from fastai.vision.all import *
 from fastai.callback.wandb import WandbCallback
 
-WANDB_PROJECT = 'ft_pets_planet'
-WANDB_ENTITY = 'fastai'
-
 config_defaults = SimpleNamespace(
     batch_size=32,
     epochs=5,
     num_experiments=1,
-    learning_rate=2e-3,
+    learning_rate=8e-3,
     img_size=224,
     resize_method="crop",
     model_name="resnet34",
     pool="concat",
     seed=42,
-    wandb_project=WANDB_PROJECT,
-    wandb_entity=WANDB_ENTITY,
     split_func="default",
-    dataset="PETS",
+    dataset="PLANETS",
 )
 
 def parse_args():
@@ -36,8 +31,6 @@ def parse_args():
     parser.add_argument('--split_func', type=str, default=config_defaults.split_func)
     parser.add_argument('--pool', type=str, default=config_defaults.pool)
     parser.add_argument('--seed', type=int, default=config_defaults.seed)
-    parser.add_argument('--wandb_project', type=str, default=WANDB_PROJECT)
-    parser.add_argument('--wandb_entity', type=str, default=WANDB_ENTITY)
     parser.add_argument('--dataset', type=str, default=config_defaults.dataset)
     return parser.parse_args()
 
@@ -65,23 +58,17 @@ def get_planets(batch_size=64, img_size=224, seed=42, method="crop"):
 def get_dataset(dataset_name, *args, **kwargs):
     if dataset_name   == "PETS":    return get_pets(*args, **kwargs)
     elif dataset_name == "PLANETS": return get_planets(*args, **kwargs)
-    else: raise Exception("Dataset not found, supports: PETS or PLANETS")
+    else: raise Exception(f"Dataset {dataset_name} not found, supports: PETS or PLANETS")
 
 def train(config=config_defaults):
-    with wandb.init(project=config.wandb_project, group="timm", entity=config.wandb_entity, config=config):
-        config = wandb.config
-        dls, metrics = get_dataset(config.dataset, config.batch_size, config.img_size, config.seed, config.resize_method)
-        learn = vision_learner(
-                dls, config.model_name, metrics=metrics, concat_pool=(config.pool=="concat"),
-                splitter=default_split if config.split_func=="default" else None,
-                cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
-        ti = time.perf_counter()
-        learn.fine_tune(config.epochs, config.learning_rate)
-        wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
-        wandb.summary["model_family"] = config.model_name.split('_')[0]
-        wandb.summary["fit_time"] = time.perf_counter() - ti
+    dls, metrics = get_dataset(config.dataset, config.batch_size, config.img_size, config.seed, config.resize_method)
+    learn = vision_learner(
+            dls, config.model_name, metrics=metrics, concat_pool=(config.pool=="concat"),
+            splitter=default_split if config.split_func=="default" else None).to_fp16()
+    ti = time.perf_counter()
+    learn.fine_tune(config.epochs, config.learning_rate)
 
 if __name__ == "__main__":
     args = parse_args()
-    train(config=args)
+    for _ in range(args.num_experiments): train(config=args)
 

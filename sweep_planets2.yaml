@@ -1,0 +1,39 @@
+program: fine_tune.py
+method: grid
+parameters:
+    dataset: 
+        value: "PLANETS"
+    learning_rate:
+        values: [0.008]
+    model_name:
+        values: [
+         'convnext_base_in22k',
+         'convnext_large_in22k',
+         'convnext_small_in22k',
+         'convnext_tiny_in22k',
+         'efficientnetv2_rw_m',
+         'efficientnetv2_rw_s',
+         'efficientnetv2_rw_t',
+         'mobilenetv3_large_100',
+         'mobilenetv3_large_100_miil_in21k',
+         'mobilenetv3_rw',
+         'mobilenetv3_small_050',
+         'mobilenetv3_small_075',
+         'mobilenetv3_small_100',
+         'mobilevit_s',
+         'mobilevit_xs',
+         'mobilevit_xxs',
+         'regnetz_040',
+         'regnetz_040h',
+         'regnetz_b16',
+         'regnetz_c16',
+         'regnetz_d32',
+         'regnetz_d8',
+         'regnetz_e8'
+            ]
+    pool:
+        values: ['concat']
+    resize_method:
+        values: ['squish']
+    num_experiments: 
+        values: [1,2,3]
