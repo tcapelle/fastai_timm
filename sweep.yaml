@@ -1,4 +1,5 @@
 program: fine_tune.py
+entity: fastai
 method: grid
 parameters:
     dataset: 
