@@ -9,68 +9,68 @@ Timm models are different than torchvision ones, and need a proper splitter of p
 
 ## Experiments
 
-We use W&B for experiment tracking trough the `WandbCallback` in fastai. The task we are trying to optimize is fine tunning a pretrained backbone on the Oxford pets dataset. This is very straight forward:
-```python
-def get_dls(batch_size, img_size, seed):
-    dataset_path = untar_data(URLs.PETS)
-    files = get_image_files(dataset_path/"images")
-    pat = re.compile('(^[a-zA-Z]+_*[a-zA-Z]+)')
-    labels = [pat.match(f.name)[0] for f in files]
-    dls = ImageDataLoaders.from_name_re(dataset_path, files, 
-                                        r'(^[a-zA-Z]+_*[a-zA-Z]+)', 
-                                        valid_pct=0.2, 
-                                        seed=seed, 
-                                        bs=batch_size,
-                                        item_tfms=Resize(img_size)) 
-    return dls
-```
+We use W&B for experiment tracking trough the `WandbCallback` in fastai. The task we are trying to optimize is fine tunning a pretrained backbone on a new dataset. 
 
-The fine tunning is performed with `fine_tune` for a fixed number of epochs. We are also tyring a strategy of doing a pre `fit`:
-```python
-learn.fit(args.fit_epochs, args.fit_learning_rate)
-learn.fine_tune(args.ft_epochs, args.ft_learning_rate)
-```
+The fine tunning is performed with `fine_tune` for a fixed number of epochs.
 
 - The [fine_tune.py](fine_tune.py) script enables fine tunning a model:
 ```bash
-> python fine_tune.py --help                                                                                                                            paperspace at psyer6c5z (-)(main)
-usage: fine_tune.py [-h] [--batch_size BATCH_SIZE] [--epochs EPOCHS] [--num_experiments NUM_EXPERIMENTS] [--learning_rate LEARNING_RATE] [--img_size IMG_SIZE] [--model_name MODEL_NAME] [--seed SEED] [--mixup]
-                    [--force_torchvision] [--wandb_project WANDB_PROJECT]
+$ python fine_tune.py --help                                                                      
+usage: fine_tune.py [-h] [--batch_size BATCH_SIZE] [--epochs EPOCHS] [--num_experiments NUM_EXPERIMENTS] [--learning_rate LEARNING_RATE]
+                    [--img_size IMG_SIZE] [--resize_method RESIZE_METHOD] [--model_name MODEL_NAME] [--split_func SPLIT_FUNC] [--pool POOL] [--seed SEED]
+                    [--wandb_project WANDB_PROJECT] [--wandb_entity WANDB_ENTITY] [--dataset DATASET]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --batch_size BATCH_SIZE
   --epochs EPOCHS
   --num_experiments NUM_EXPERIMENTS
   --learning_rate LEARNING_RATE
   --img_size IMG_SIZE
+  --resize_method RESIZE_METHOD
   --model_name MODEL_NAME
+  --split_func SPLIT_FUNC
+  --pool POOL
   --seed SEED
-  --mixup
-  --force_torchvision
   --wandb_project WANDB_PROJECT
+  --wandb_entity WANDB_ENTITY
+  --dataset DATASET
 ```
+## Running a Sweep with W&B
+- Create a W&B account on https://wandb.ai/signup
 
-- You can aslo perform an hyperparameter sweep using the [sweep.py](sweep.py) file, that insed calls the [jeremy_ft.py](jeremy_ft.py) using the 1-fit 3-fine_tune strategy. You can modify the sweep hyperparams inside [sweep.py](sweep.py).
+- Setup your machine for fastai, you will need to install latest fastai and wandb. We can provide credtis on jarvislabs.ai if needed.
+
+- Clone this repo
+
+Time to run the experiment, We can perform hyperparameter sweep using W&B. 
+
+- Setting your sweep YAML file: To run a sweep you will need first to configure what parameters you want to explore, this is done on the `sweep.yaml` file. In this file, you will specify the parameters the sweep will explore. For instance, setting:
+```
+learning_rate:
+    values: [0.002, 0.008]
+```
+tells the sweep to choose the `learning_rate` param from the 2 values: `0.002` and `0.008`. What happens if we want a distribution?
+```
+learning_rate:
+    distribution: uniform
+    min: 0.0001
+    max: 0.01
+```
+You can check all the possibilities for defining parameters [here](https://docs.wandb.ai/guides/sweeps/configuration).
+
+- Creating the sweep: In a terminal window, run:
 
 ```bash
-> python sweep.py --help                                                                                                                              paperspace at psyer6c5z (-)(main)
-usage: sweep.py [-h] [--sweep_id SWEEP_ID] [--sweep_count SWEEP_COUNT] [--sweep_method SWEEP_METHOD] [--sweep_goal SWEEP_GOAL] [--sweep_metric_name SWEEP_METRIC_NAME]
-                [--early_terminate_min_iter EARLY_TERMINATE_MIN_ITER] [--early_terminate_type EARLY_TERMINATE_TYPE] [--model_name MODEL_NAME]
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --sweep_id SWEEP_ID
-  --sweep_count SWEEP_COUNT
-  --sweep_method SWEEP_METHOD
-  --sweep_goal SWEEP_GOAL
-  --sweep_metric_name SWEEP_METRIC_NAME
-  --early_terminate_min_iter EARLY_TERMINATE_MIN_ITER
-  --early_terminate_type EARLY_TERMINATE_TYPE
-  --model_name MODEL_NAME
-
+wandb sweep sweep.yaml
 ```
 
-A bunch of sweeps have been performed, and are available [here](https://wandb.ai/capecape/fine_tune_timm/sweeps)
+- Running the actual training of the sweep (you can paste the output of the previous command here)
 
-You can also follow the project workspace [here](https://wandb.ai/capecape/fine_tune_timm)
+```bash
+wandb agent <SWEEP_ID>
+```
+
+
+References:
+- If you want to know more about refactoring your code for sweeps, take a look at [How to Perform Massive Hyperparameter Experiments with W&B](https://wandb.ai/fastai/fine_tune_timm/reports/How-to-Perform-Massive-Hyperparameter-Experiments-with-W-B---VmlldzoyMDAyNDk2)
