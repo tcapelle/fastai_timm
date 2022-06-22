@@ -1,9 +1,5 @@
-import wandb
-import timm
 import argparse
-import torchvision
 from fastai.vision.all import *
-from fastai.callback.wandb import WandbCallback
 
 config_defaults = SimpleNamespace(
     batch_size=32,
