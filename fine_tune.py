@@ -1,12 +1,11 @@
 import wandb
-import timm
 import argparse
-import torchvision
 from fastai.vision.all import *
 from fastai.callback.wandb import WandbCallback
+import open_clip
 
 WANDB_PROJECT = 'ft_pets_planet'
-WANDB_ENTITY = 'fastai'
+WANDB_ENTITY = 'simonjegou'
 
 config_defaults = SimpleNamespace(
     batch_size=32,
@@ -16,6 +15,7 @@ config_defaults = SimpleNamespace(
     img_size=224,
     resize_method="crop",
     model_name="resnet34",
+    clip_checkpoint=None,
     pool="concat",
     seed=42,
     wandb_project=WANDB_PROJECT,
@@ -33,6 +33,7 @@ def parse_args():
     parser.add_argument('--img_size', type=int, default=config_defaults.img_size)
     parser.add_argument('--resize_method', type=str, default=config_defaults.resize_method)
     parser.add_argument('--model_name', type=str, default=config_defaults.model_name)
+    parser.add_argument('--clip_checkpoint', type=str, default=config_defaults.clip_checkpoint)
     parser.add_argument('--split_func', type=str, default=config_defaults.split_func)
     parser.add_argument('--pool', type=str, default=config_defaults.pool)
     parser.add_argument('--seed', type=int, default=config_defaults.seed)
@@ -40,6 +41,20 @@ def parse_args():
     parser.add_argument('--wandb_entity', type=str, default=WANDB_ENTITY)
     parser.add_argument('--dataset', type=str, default=config_defaults.dataset)
     return parser.parse_args()
+
+def get_clip_model(model_name, pretrained, n_out):
+    """ 
+    Returns a CLIP model with the given name and pretrained state
+    """
+    backbone = open_clip.create_model(model_name, pretrained, jit=False).visual
+    backbone.proj = None
+    if 'ViT' in model_name:
+        n_hidden = backbone.ln_post.weight.shape[0]
+    else:
+        n_hidden = backbone.attnpool.c_proj.weight.shape[0]
+    linear = nn.Linear(n_hidden, n_out)
+    model = nn.Sequential(backbone, linear)
+    return model
 
 def get_gpu_mem(device=0):
     "Memory usage in GB"
@@ -71,10 +86,19 @@ def train(config=config_defaults):
     with wandb.init(project=config.wandb_project, group="timm", entity=config.wandb_entity, config=config):
         config = wandb.config
         dls, metrics = get_dataset(config.dataset, config.batch_size, config.img_size, config.seed, config.resize_method)
-        learn = vision_learner(
-                dls, config.model_name, metrics=metrics, concat_pool=(config.pool=="concat"),
-                splitter=default_split if config.split_func=="default" else None,
-                cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
+        if config.clip_checkpoint is not None:
+            model = get_clip_model(config.model_name, config.clip_checkpoint, dls.c)
+            mean, std =  (0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)
+            dls.add_tfms([Normalize.from_stats(mean, std)], 'after_batch')
+            learn = Learner(
+                    dls, model, metrics=metrics,
+                    splitter=default_split if config.split_func=="default" else None,
+                    cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
+        else:
+            learn = vision_learner(
+                    dls, config.model_name, metrics=metrics, concat_pool=(config.pool=="concat"),
+                    splitter=default_split if config.split_func=="default" else None,
+                    cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
         ti = time.perf_counter()
         learn.fine_tune(config.epochs, config.learning_rate)
         wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
@@ -84,4 +108,3 @@ def train(config=config_defaults):
 if __name__ == "__main__":
     args = parse_args()
     train(config=args)
-
