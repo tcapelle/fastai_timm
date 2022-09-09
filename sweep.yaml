@@ -5,7 +5,7 @@ parameters:
     dataset: 
         values: ['PLANETS','PETS']
     learning_rate:
-        values: [0.008]
+        values: [0.002, 0.008]
     model_name:
         values: [
             'convnext_base',

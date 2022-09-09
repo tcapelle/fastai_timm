@@ -1,73 +1,17 @@
 program: fine_tune.py
+project: "ft_pets_planet"
+entity: "fastai"
 method: grid
 parameters:
     dataset: 
-        value: "PETS"
+        values: ['PETS', 'PLANETS']
     learning_rate:
         values: [0.002, 0.008]
     model_name:
-        values: [
-            'convnext_base',
-            'convnext_base_in22ft1k',
-            'convnext_small',
-            'convnext_tiny',
-            'convnext_tiny_hnf',
-            'efficientnet_b0',
-            'efficientnet_es',
-            'efficientnet_es_pruned',
-            'efficientnet_lite0',
-            'levit_128',
-            'levit_128s',
-            'levit_192',
-            'levit_256',
-            'levit_384',
-            'regnetx_002',
-            'regnetx_004',
-            'regnetx_006',
-            'regnetx_008',
-            'regnetx_016',
-            'regnetx_032',
-            'regnetx_040',
-            'regnetx_064',
-            'regnetx_080',
-            'regnetx_120',
-            'regnetx_160',
-            'regnety_002',
-            'regnety_004',
-            'regnety_006',
-            'regnety_008',
-            'regnety_016',
-            'regnety_120',
-            'resnet101',
-            'resnet152',
-            'resnet18',
-            'resnet18d',
-            'resnet26',
-            'resnet26d',
-            'resnet34',
-            'resnet34d',
-            'resnet50',
-            'resnet50d',
-            'resnet50_gn',
-            'resnetblur50',
-            'resnetrs50',
-            'resnetv2_101',
-            'resnetv2_50',
-            'resnetv2_50x1_bit_distilled',
-            'vit_base_patch16_224',
-            'vit_base_patch16_224_miil',
-            'vit_base_patch16_224_sam',
-            'vit_base_patch32_224',
-            'vit_base_patch32_224_sam',
-            'vit_small_patch16_224',
-            'vit_small_patch32_224',
-            'vit_small_r26_s32_224',
-            'vit_tiny_patch16_224',
-            'vit_tiny_r_s16_p8_224',
-            ]
+        values: ['convnext_nano']
     pool:
-        values: ['concat']
+        value: 'concat'
     resize_method:
-        values: ['squish']
+        values: ['squish', 'crop']
     num_experiments: 
         values: [1,2,3]

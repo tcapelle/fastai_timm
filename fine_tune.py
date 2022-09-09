@@ -1,5 +1,6 @@
 import wandb
 import argparse
+import torchvision as tv
 from fastai.vision.all import *
 from fastai.callback.wandb import WandbCallback
 import open_clip
@@ -16,6 +17,7 @@ config_defaults = SimpleNamespace(
     resize_method="crop",
     model_name="resnet34",
     clip_checkpoint=None,
+    use_torchvision=False,
     pool="concat",
     seed=42,
     wandb_project=WANDB_PROJECT,
@@ -34,6 +36,7 @@ def parse_args():
     parser.add_argument('--resize_method', type=str, default=config_defaults.resize_method)
     parser.add_argument('--model_name', type=str, default=config_defaults.model_name)
     parser.add_argument('--clip_checkpoint', type=str, default=config_defaults.clip_checkpoint)
+    parser.add_argument('--use_torchvision', type=bool, default=config_defaults.use_torchvision)
     parser.add_argument('--split_func', type=str, default=config_defaults.split_func)
     parser.add_argument('--pool', type=str, default=config_defaults.pool)
     parser.add_argument('--seed', type=int, default=config_defaults.seed)
@@ -95,10 +98,12 @@ def train(config=config_defaults):
                     splitter=default_split if config.split_func=="default" else None,
                     cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
         else:
-            learn = vision_learner(
-                    dls, config.model_name, metrics=metrics, concat_pool=(config.pool=="concat"),
-                    splitter=default_split if config.split_func=="default" else None,
-                    cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
+            if config.use_torchvision: 
+                config.model_name = getattr(tv.models, config.model_name)
+        learn = vision_learner(
+                dls, config.model_name, metrics=metrics, concat_pool=(config.pool=="concat"),
+                splitter=default_split if config.split_func=="default" else None,
+                cbs=WandbCallback(log=None, log_preds=False)).to_fp16()
         ti = time.perf_counter()
         learn.fine_tune(config.epochs, config.learning_rate)
         wandb.summary["GPU_mem"] = get_gpu_mem(learn.dls.device)
