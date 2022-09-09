@@ -5,7 +5,7 @@ from fastai.callback.wandb import WandbCallback
 import open_clip
 
 WANDB_PROJECT = 'ft_pets_planet'
-WANDB_ENTITY = 'simonjegou'
+WANDB_ENTITY = 'fastai'
 
 config_defaults = SimpleNamespace(
     batch_size=32,
